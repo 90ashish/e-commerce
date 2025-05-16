@@ -1,11 +1,13 @@
 version: '3.8'
 services:
   zookeeper:
+    container_name: zookeeper
     image: wurstmeister/zookeeper
     ports:
       - '2181:2181'
 
   kafka:
+    container_name: kafka
     image: wurstmeister/kafka   
     ports:
       - '9092:9092'
@@ -14,6 +16,7 @@ services:
       KAFKA_ADVERTISED_HOST_NAME: 'localhost'
 
   schema-registry:
+    container_name: schema-registry
     image: confluentinc/cp-schema-registry
     depends_on:
       - kafka
@@ -22,3 +25,15 @@ services:
     environment:
       SCHEMA_REGISTRY_KAFKA_BOOTSTRAP_SERVERS: 'PLAINTEXT://kafka:9092'
       SCHEMA_REGISTRY_HOST_NAME: 'schema-registry'
+      
+  # kafka-ui:
+  #   container_name: kafka-ui
+  #   image: provectuslabs/kafka-ui:latest
+  #   depends_on:
+  #     - kafka
+  #   ports:
+  #     - '8080:8080'
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: local
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+  #     KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
