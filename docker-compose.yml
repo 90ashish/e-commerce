@@ -58,3 +58,14 @@ services:
       - kafka
     environment:
       - APP_KAFKA_BROKERS=kafka:9092
+       
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/notification/Dockerfile
+    image: e-commerce/notification:latest
+    container_name: notification-service
+    depends_on:
+      - kafka
+    environment:
+      - APP_KAFKA_BROKERS=kafka:9092

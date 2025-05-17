@@ -34,9 +34,9 @@ up: ## Bring up Kafka stack, create topics, build & run Go services
 		--create --topic inventory.failed \
 		--partitions 3 --replication-factor 1 || true
 
-	@echo "→ Building & launching Order & Inventory services..."
-	$(DC) build order-service inventory-service
-	$(DC) up -d order-service inventory-service
+	@echo "→ Building & launching Order, Inventory & Notification services..."
+	$(DC) build order-service inventory-service notification-service
+	$(DC) up -d order-service inventory-service notification-service
 
 	@echo "→ All services are now up and running."
 
