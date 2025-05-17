@@ -6,27 +6,21 @@ DC := docker-compose
 # Kafka container name (as per your compose file)
 KAFKA := kafka
 
-# Kafka broker address
+# Kafka broker address (used by kafka-topics.sh)
 BROKER := localhost:9092
 
-# Go module directories
-ORDER_DIR := order
-INV_DIR   := inventory
-
-.PHONY: help up down topics order inventory services
+.PHONY: help up down build-services topics show-topics \
+        show-inventory-reservations show-inventory-failures
 
 help:  ## Show this help.
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-	 awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+	 awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-up:  ## Start Zookeeper, Kafka & Schema Registry
-	$(DC) up -d
+up: ## Bring up Kafka stack, create topics, build & run Go services
+	@echo "→ Starting Zookeeper, Kafka & Schema Registry..."
+	$(DC) up -d zookeeper kafka schema-registry
 
-down:  ## Stop & remove all containers
-	$(DC) down
-
-topics:  ## Create the three required topics
-	@echo "→ Creating topics on $(BROKER)..."
+	@echo "→ Creating required Kafka topics..."
 	@docker exec -it $(KAFKA) kafka-topics.sh \
 		--bootstrap-server $(BROKER) \
 		--create --topic orders.created \
@@ -39,37 +33,32 @@ topics:  ## Create the three required topics
 		--bootstrap-server $(BROKER) \
 		--create --topic inventory.failed \
 		--partitions 3 --replication-factor 1 || true
-	@echo "→ Topics:"
-	@docker exec -it $(KAFKA) kafka-topics.sh --bootstrap-server $(BROKER) --list
 
-show-topics: ## Shows topics created in kafka
-	@echo "→ Topics created inside kafka:"
-	@docker exec -it kafka kafka-topics.sh --list --bootstrap-server localhost:9092
+	@echo "→ Building & launching Order & Inventory services..."
+	$(DC) build order-service inventory-service
+	$(DC) up -d order-service inventory-service
+
+	@echo "→ All services are now up and running."
+
+down: ## Stop & remove all containers
+	@echo "→ Tearing down all services..."
+	$(DC) down
+
+show-topics: ## List all Kafka topics
+	@echo "→ Topics in Kafka:"
+	@docker exec -it $(KAFKA) kafka-topics.sh \
+		--bootstrap-server $(BROKER) --list
 
 show-inventory-reservations: ## Listen for successful inventory reservations
-	@echo "-> Listen for successful reservations:"
-	@docker exec -it kafka \
-	kafka-console-consumer.sh \
-	--bootstrap-server localhost:9092 \
-	--topic inventory.reserved \
-	--from-beginning
+	@echo "→ Listening on inventory.reserved:"
+	@docker exec -it $(KAFKA) kafka-console-consumer.sh \
+		--bootstrap-server $(BROKER) \
+		--topic inventory.reserved \
+		--from-beginning
 
-show-inventory-failures: ##  Listen for failures in inventroy
-	@echo "-> Listen for failures in inventroy"
-	@docker exec -it kafka \
-	kafka-console-consumer.sh \
-	--bootstrap-server localhost:9092 \
-	--topic inventory.failed \
-	--from-beginning
-
-order:  ## Run the Order service (blocking)
-	@echo "→ Starting Order service on :8090"
-	@cd $(ORDER_DIR) && go run main.go
-
-inventory:  ## Run the Inventory service (blocking)
-	@echo "→ Starting Inventory service"
-	@cd $(INV_DIR) && go run main.go
-
-services: up topics  ## Start everything you need (then run services separately)
-	@echo "→ Kafka stack and topics ready. Now run 'make order' and 'make inventory' in separate shells."
-
+show-inventory-failures: ## Listen for inventory failures
+	@echo "→ Listening on inventory.failed:"
+	@docker exec -it $(KAFKA) kafka-console-consumer.sh \
+		--bootstrap-server $(BROKER) \
+		--topic inventory.failed \
+		--from-beginning

@@ -1,4 +1,4 @@
-Phase 1 – Local Infrastructure & Boilerplate
+Phase 1 – Local Infrastructure & Boilerplate [done]
 
 Goal: Stand up a local Kafka ecosystem and a blank Go-service template.
 
@@ -24,7 +24,7 @@ Goal: Stand up a local Kafka ecosystem and a blank Go-service template.
 
         go.mod in repo root, viper/envconfig for env vars
 
-Phase 2 – Order Service (Producer)
+Phase 2 – Order Service (Producer) [done]
 
 Goal: Expose a REST endpoint and publish orders.created events.
 
@@ -44,7 +44,7 @@ Goal: Expose a REST endpoint and publish orders.created events.
 
         Mock producer to assert message format & topic
 
-Phase 3 – Inventory Service (Consumer → Producer)
+Phase 3 – Inventory Service (Consumer → Producer) [done]
 
 Goal: Consume new orders, check stock, emit success/failure.
 
@@ -74,7 +74,7 @@ Goal: Consume new orders, check stock, emit success/failure.
 
         Bring up Order + Inventory → verify round-trip
 
-Phase 4 – Notification Service (Consumer)
+Phase 4 – Notification Service (Consumer) [todo]
 
 Goal: Send out confirmation or out-of-stock notifications.
 
