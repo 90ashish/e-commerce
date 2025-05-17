@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// 2. Initialize stock levels (e.g., 10 units of "foo" and "bar")
-	initialStock := map[string]int{"foo": 10, "bar": 5}
+	initialStock := map[string]int{"foo": 1, "bar": 5}
 	stockSvc := service.NewStockService(initialStock)
 
 	// 3. Set up producer
