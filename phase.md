@@ -74,7 +74,7 @@ Goal: Consume new orders, check stock, emit success/failure.
 
         Bring up Order + Inventory → verify round-trip
 
-Phase 4 – Notification Service (Consumer) [todo]
+Phase 4 – Notification Service (Consumer) [done]
 
 Goal: Send out confirmation or out-of-stock notifications.
 
@@ -96,7 +96,7 @@ Goal: Send out confirmation or out-of-stock notifications.
 
         Fire an order that succeeds and one that fails; assert logs
 
-Phase 5 – Configuration & Reliability
+Phase 5 – Configuration & Reliability [done]
 
 Goal: Bolt on production-grade cross-cutting concerns.
 
@@ -187,11 +187,3 @@ Goal: Integrate Kafka Connect and observability.
     Alerting:
 
         Grafana dashboard for lag spikes, error rates
-
-Next Steps:
-
-    Pick Phase 1. Get your local compose up.
-
-    Sketch your shared common/ data models.
-
-    Kick off Phase 2—order API + first “Hello, Kafka” publish.
