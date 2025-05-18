@@ -13,13 +13,9 @@ services:
     depends_on:
       - zookeeper
     environment:
-      # connect to ZooKeeper
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      # allow PLAINTEXT listeners
       - ALLOW_PLAINTEXT_LISTENER=yes
-      # broker listens on all interfaces
       - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092
-      # tells clients (other containers) to use kafka:9092
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
     ports:
       - '9092:9092'
@@ -53,12 +49,12 @@ services:
       context: .
       dockerfile: docker/inventory/Dockerfile
     image: e-commerce/inventory:latest
-    container_name: inventory-service
+    # container_name: inventory-service # remove container_name to allow scaling
     depends_on:
       - kafka
     environment:
       - APP_KAFKA_BROKERS=kafka:9092
-       
+
   notification-service:
     build:
       context: .
