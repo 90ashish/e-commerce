@@ -118,7 +118,7 @@ Goal: Bolt on production-grade cross-cutting concerns.
 
         Centralize via Viper or env vars; support profiles (dev/prod)
 
-Phase 6 – Scaling & Partitioning
+Phase 6 – Scaling & Partitioning [done]
 
 Goal: Make it horizontally scalable and correctly partitioned.
 
@@ -138,7 +138,7 @@ Goal: Make it horizontally scalable and correctly partitioned.
 
         Measure consumer lag under load
 
-Phase 7 – Transactions & Exactly-Once
+Phase 7 – Transactions & Exactly-Once [todo]
 
 Goal: Ensure no double-reservations or lost events.
 
