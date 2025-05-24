@@ -1,189 +1,220 @@
-Phase 1 – Local Infrastructure & Boilerplate [done]
+# Kafka-based Go Microservices Progress Tracker
 
-Goal: Stand up a local Kafka ecosystem and a blank Go-service template.
+## Phase 1 – Local Infrastructure & Boilerplate 【✔️ done】
 
-    Docker Compose:
+**Goal:** Stand up a local Kafka ecosystem and blank Go-service scaffold.  
+**What we did:**
 
-        Kafka broker + Zookeeper
+- Wrote a `docker-compose.yml` with Zookeeper, Kafka broker, Schema Registry (optional).
+- Created the three topics (`orders.created`, `inventory.reserved`, `inventory.failed`).
+- Set up a mono-repo: `order/`, `inventory/`, `notification/` + `common/` for models & config.
+- Initialized `go.mod` at repo root and loaded env via Viper.
 
-        (Optional) Confluent Schema Registry
+---
 
-    Topics:
+## Phase 2 – Order Service (Producer) 【✔️ done】
 
-        orders.created
+**Goal:** Expose HTTP `POST /orders` and publish `orders.created`.  
+**What we did:**
 
-        inventory.reserved
+- Built a Gin-based API with request validation for `userID`, `items`, `total`.
+- Integrated `github.com/segmentio/kafka-go` / Sarama to produce to `orders.created`, keyed by `userID`.
+- Added error handling, structured logs, and graceful shutdown.
+- *(Unit tests to be written later.)*
 
-        inventory.failed
+---
 
-    Go Service Scaffold:
+## Phase 3 – Inventory Service (Consumer → Producer) 【✔️ done】
 
-        Mono-repo layout with three service folders: order/, inventory/, notification/
+**Goal:** Consume orders, reserve stock, emit success/failure events.  
+**What we did:**
 
-        Shared common/ for models (e.g. Order struct) and config
+- Created an `InventoryConsumer` joining consumer-group on `orders.created`.
+- Wrote `StockService` (in-memory map) to reserve items.
+- On success, produced to `inventory.reserved`; on failure, to `inventory.failed`.
+- Committed offsets only after produce succeeded.
+- Wrote integration test (order → inventory round-trip).
 
-        go.mod in repo root, viper/envconfig for env vars
+---
 
-Phase 2 – Order Service (Producer) [done]
+## Phase 4 – Notification Service (Consumer) 【✔️ done】
 
-Goal: Expose a REST endpoint and publish orders.created events.
+**Goal:** Notify user of confirm/out-of-stock.  
+**What we did:**
 
-    HTTP API:
+- Built `NotificationConsumer` with two readers (`inventory.reserved`, `inventory.failed`).
+- Defined `NotificationSink` interface, with console & email stubs.
+- Logging hooks for “Order confirmed” & “Out of stock.”
+- End-to-end tests: submitted orders, asserted notifications.
 
-        POST /orders → accepts JSON payload (userID, items, total)
+---
 
-        Basic request validation (e.g. non-empty items)
+## Phase 5 – Configuration & Reliability 【✔️ done】
 
-    Kafka Producer:
+**Goal:** Add production-grade cross-cutting concerns.  
+**What we did:**
 
-        Use kafka-go or sarama to publish to orders.created
+- Centralized all config via Viper—with dev/prod profiles.
+- Replaced stdlib logging with Zap; added Gin-Zap middleware.
+- Graceful shutdown (contexts + SIGINT).
+- Producer/consumer retry & app-level idempotency (dedupe maps).
+- Structured logs with trace IDs.
 
-        Key by userID for partition affinity
+---
 
-    Unit Tests:
+## Phase 6 – Scaling & Partitioning 【✔️ done】
 
-        Mock producer to assert message format & topic
+**Goal:** Horizontally scale and partition correctly.  
+**What we did:**
 
-Phase 3 – Inventory Service (Consumer → Producer) [done]
+- Recreated topics with 4+ partitions.
+- Scaled inventory-service to 2+ replicas in same consumer group.
+- Verified exactly-once processing across restarts.
+- Load-tested with k6, measured throughput and consumer lag via `kafka-consumer-groups.sh`.
+- Confirmed ordering by `userID` keying.
 
-Goal: Consume new orders, check stock, emit success/failure.
+---
 
-    Kafka Consumer:
+## Phase 7 – Transactions & Exactly-Once 【✔️ done】
 
-        Join orders-created consumer group
+**Goal:** Guarantee no duplicates or data loss.  
+**What we did (idempotent + dedupe fallback):**
 
-        Deserialize payload
+- Swapped in IBM’s Sarama v1.45.1 with idempotent `SyncProducer` (`Net.MaxOpenRequests=1`).
+- Built a `TransactionalProducer` wrapper with app-level dedupe for `orderIDs`.
+- *(Full Kafka TXN APIs deferred until Sarama stabilizes.)*
+- Ensured each order is published exactly once and offsets committed after produce.
 
-    Stock Logic:
+---
 
-        In-memory map or simple Redis/Postgres table
+## Phase 8 – Schema Evolution & Stream Processing [todo]
 
-        Reserve if available ≥ quantity, else mark fail
+**Goal:** Support versioned schemas and aggregate streams.  
+**To do:**
 
-    Emit Events:
+- Bring up Schema Registry, define Avro/JSON schema for `OrderCreatedV1 → V2` (add a field).
+- Code-generate Go structs, wire into producer & consumers.
+- Build a metrics “aggregator” service: subscribe to `orders.created`, compute QPS/minute, publish to `metrics.order.rate`.
+- Enhance `NotificationConsumer` to handle mixed V1/V2 payloads.
 
-        On success → inventory.reserved (include orderID)
+---
 
-        On failure → inventory.failed
+## Phase 9 – Connectors & Monitoring [todo]
 
-    Offset Handling:
+**Goal:** Integrate Kafka Connect and observability.  
+**To do:**
 
-        Commit only after produce succeeds
+- Stand up Kafka Connect with a Postgres/Mongo sink connector for audit logs.
+- Expose broker & consumer metrics via Prometheus (JMX exporter or HTTP).
+- Create Grafana dashboards for consumer lag, QPS, error rates.
+- Define alerts for lag spikes and failure conditions.
+# Kafka-based Go Microservices Progress Tracker
 
-    Integration Test:
+## Phase 1 – Local Infrastructure & Boilerplate 【✔️ done】
 
-        Bring up Order + Inventory → verify round-trip
+**Goal:** Stand up a local Kafka ecosystem and blank Go-service scaffold.  
+**What we did:**
 
-Phase 4 – Notification Service (Consumer) [done]
+- Wrote a `docker-compose.yml` with Zookeeper, Kafka broker, Schema Registry (optional).
+- Created the three topics (`orders.created`, `inventory.reserved`, `inventory.failed`).
+- Set up a mono-repo: `order/`, `inventory/`, `notification/` + `common/` for models & config.
+- Initialized `go.mod` at repo root and loaded env via Viper.
 
-Goal: Send out confirmation or out-of-stock notifications.
+---
 
-    Dual Consumers:
+## Phase 2 – Order Service (Producer) 【✔️ done】
 
-        One group subscribes both result topics
+**Goal:** Expose HTTP `POST /orders` and publish `orders.created`.  
+**What we did:**
 
-    Notification Logic:
+- Built a Gin-based API with request validation for `userID`, `items`, `total`.
+- Integrated `github.com/segmentio/kafka-go` / Sarama to produce to `orders.created`, keyed by `userID`.
+- Added error handling, structured logs, and graceful shutdown.
+- *(Unit tests to be written later.)*
 
-        On reserved → log/email “Order confirmed”
+---
 
-        On failed → log/email “Out of stock”
+## Phase 3 – Inventory Service (Consumer → Producer) 【✔️ done】
 
-    Pluggable Sink:
+**Goal:** Consume orders, reserve stock, emit success/failure events.  
+**What we did:**
 
-        Write interface so you can swap from console to SMTP or webhook
+- Created an `InventoryConsumer` joining consumer-group on `orders.created`.
+- Wrote `StockService` (in-memory map) to reserve items.
+- On success, produced to `inventory.reserved`; on failure, to `inventory.failed`.
+- Committed offsets only after produce succeeded.
+- Wrote integration test (order → inventory round-trip).
 
-    End-to-End Test:
+---
 
-        Fire an order that succeeds and one that fails; assert logs
+## Phase 4 – Notification Service (Consumer) 【✔️ done】
 
-Phase 5 – Configuration & Reliability [done]
+**Goal:** Notify user of confirm/out-of-stock.  
+**What we did:**
 
-Goal: Bolt on production-grade cross-cutting concerns.
+- Built `NotificationConsumer` with two readers (`inventory.reserved`, `inventory.failed`).
+- Defined `NotificationSink` interface, with console & email stubs.
+- Logging hooks for “Order confirmed” & “Out of stock.”
+- End-to-end tests: submitted orders, asserted notifications.
 
-    Graceful Shutdown:
+---
 
-        context.Context + SIGINT handler → drain, commit, close
+## Phase 5 – Configuration & Reliability 【✔️ done】
 
-    Retry & Idempotency:
+**Goal:** Add production-grade cross-cutting concerns.  
+**What we did:**
 
-        Retry transient Kafka errors
+- Centralized all config via Viper—with dev/prod profiles.
+- Replaced stdlib logging with Zap; added Gin-Zap middleware.
+- Graceful shutdown (contexts + SIGINT).
+- Producer/consumer retry & app-level idempotency (dedupe maps).
+- Structured logs with trace IDs.
 
-        Dedupe on orderID if replayed
+---
 
-    Structured Logging:
+## Phase 6 – Scaling & Partitioning 【✔️ done】
 
-        zap or logrus with request trace IDs
+**Goal:** Horizontally scale and partition correctly.  
+**What we did:**
 
-    Configuration:
+- Recreated topics with 4+ partitions.
+- Scaled inventory-service to 2+ replicas in same consumer group.
+- Verified exactly-once processing across restarts.
+- Load-tested with k6, measured throughput and consumer lag via `kafka-consumer-groups.sh`.
+- Confirmed ordering by `userID` keying.
 
-        Centralize via Viper or env vars; support profiles (dev/prod)
+---
 
-Phase 6 – Scaling & Partitioning [done]
+## Phase 7 – Transactions & Exactly-Once 【✔️ done】
 
-Goal: Make it horizontally scalable and correctly partitioned.
+**Goal:** Guarantee no duplicates or data loss.  
+**What we did (idempotent + dedupe fallback):**
 
-    Consumer Groups:
+- Swapped in IBM’s Sarama v1.45.1 with idempotent `SyncProducer` (`Net.MaxOpenRequests=1`).
+- Built a `TransactionalProducer` wrapper with app-level dedupe for `orderIDs`.
+- *(Full Kafka TXN APIs deferred until Sarama stabilizes.)*
+- Ensured each order is published exactly once and offsets committed after produce.
 
-        Simulate 2+ inventory instances
+---
 
-        Verify each message processed exactly once
+## Phase 8 – Schema Evolution & Stream Processing [todo]
 
-    Topic Partitions:
+**Goal:** Support versioned schemas and aggregate streams.  
+**To do:**
 
-        Increase to 4+ and test keying strategy
+- Bring up Schema Registry, define Avro/JSON schema for `OrderCreatedV1 → V2` (add a field).
+- Code-generate Go structs, wire into producer & consumers.
+- Build a metrics “aggregator” service: subscribe to `orders.created`, compute QPS/minute, publish to `metrics.order.rate`.
+- Enhance `NotificationConsumer` to handle mixed V1/V2 payloads.
 
-    Load Testing:
+---
 
-        Use k6 or wrk to slam POST /orders
+## Phase 9 – Connectors & Monitoring [todo]
 
-        Measure consumer lag under load
+**Goal:** Integrate Kafka Connect and observability.  
+**To do:**
 
-Phase 7 – Transactions & Exactly-Once [done]
-
-Goal: Ensure no double-reservations or lost events.
-
-    Kafka Transactions (if using Sarama):
-
-        Wrap consume–produce cycle in a transaction
-
-        Commit offsets transactionally
-
-    Error Scenarios:
-
-        Test failures mid-transaction → assert rollback
-
-Phase 8 – Schema Evolution & Stream Processing [todo]
-
-Goal: Add versioned schemas and a simple stream aggregator.
-
-    Schema Registry:
-
-        Define Avro/JSON Schema for OrderCreatedV1 → V2 (add a field)
-
-        Code-gen Go structs from schema
-
-    Metrics Service:
-
-        New Go “aggregator” app subscribes orders.created
-
-        Computes QPS per minute, writes to metrics.order.rate
-
-    Consumer in Notification:
-
-        Auto-adapt to both V1 & V2 schemas
-
-Phase 9 – Connectors & Monitoring
-
-Goal: Integrate Kafka Connect and observability.
-
-    Kafka Connect:
-
-        Sink connector to Postgres or MongoDB for audit logs
-
-    Prometheus Exporters:
-
-        Expose consumer-lag, broker‐health via JMX or HTTP
-
-    Alerting:
-
-        Grafana dashboard for lag spikes, error rates
+- Stand up Kafka Connect with a Postgres/Mongo sink connector for audit logs.
+- Expose broker & consumer metrics via Prometheus (JMX exporter or HTTP).
+- Create Grafana dashboards for consumer lag, QPS, error rates.
+- Define alerts for lag spikes and failure conditions.
