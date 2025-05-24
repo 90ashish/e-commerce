@@ -138,7 +138,7 @@ Goal: Make it horizontally scalable and correctly partitioned.
 
         Measure consumer lag under load
 
-Phase 7 – Transactions & Exactly-Once [todo]
+Phase 7 – Transactions & Exactly-Once [done]
 
 Goal: Ensure no double-reservations or lost events.
 
@@ -152,7 +152,7 @@ Goal: Ensure no double-reservations or lost events.
 
         Test failures mid-transaction → assert rollback
 
-Phase 8 – Schema Evolution & Stream Processing
+Phase 8 – Schema Evolution & Stream Processing [todo]
 
 Goal: Add versioned schemas and a simple stream aggregator.
 
