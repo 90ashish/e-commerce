@@ -44,7 +44,7 @@ Build a mini e-commerce backend with **three Go microservices**, communicating *
 
 - **Client Libraries**
   - [`segmentio/kafka-go`](https://github.com/segmentio/kafka-go): Idiomatic and simple.
-  - [`Shopify/sarama`](https://github.com/Shopify/sarama): Rich features, supports transactions and interceptors.
+  - [`Shopify/sarama`](https://github.com/IBM/sarama): Rich features, supports transactions and interceptors.
 
 - **Configuration**
   - Use `Viper` or environment variables to externalize brokers, topics, and group IDs.

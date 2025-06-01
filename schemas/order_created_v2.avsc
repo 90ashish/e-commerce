@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "OrderCreated",
+  "namespace": "ecommerce",
+  "fields": [
+    { "name": "orderID",   "type": "string" },
+    { "name": "userID",    "type": "string" },
+    { "name": "items",     "type": { "type": "array", "items": "string" } },
+    { "name": "total",     "type": "double" },
+    { "name": "promoCode", "type": [ "null", "string" ], "default": null }
+  ]
+}

@@ -28,6 +28,7 @@ services:
     environment:
       - SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS=PLAINTEXT://kafka:9092
       - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8081
     ports:
       - '8081:8081'
 
@@ -65,3 +66,15 @@ services:
       - kafka
     environment:
       - APP_KAFKA_BROKERS=kafka:9092
+
+  aggregator:
+    build:
+      context: .
+      dockerfile: docker/aggregator/Dockerfile
+    image: e-commerce/aggregator:latest
+    container_name: aggregator
+    depends_on:
+      - kafka
+    environment:
+      - APP_KAFKA_BROKERS=kafka:9092
+      - APP_ENV=dev
