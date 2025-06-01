@@ -207,6 +207,11 @@
 - Build a metrics “aggregator” service: subscribe to `orders.created`, compute QPS/minute, publish to `metrics.order.rate`.
 - Enhance `NotificationConsumer` to handle mixed V1/V2 payloads.
 
+**Remaining work (wire-up postponed until after Phase 9):**
+- Replace JSON serialization in Order Service with Avro V2 (models_v2.OrderCreated) + Schema Registry producer.
+- Update Inventory & Notification consumers to use serde.Unmarshal against models_v2.OrderCreated (with fallback to models_v1.OrderCreated).
+- Ensure backward/forward compatibility: V1 producers/consumers continue working alongside V2.
+
 ---
 
 ## Phase 9 – Connectors & Monitoring [todo]

@@ -5,7 +5,11 @@ KAFKA := kafka
 BROKER := localhost:9092
 
 .PHONY: help up down build-services topics show-topics \
-        show-inventory-reservations show-inventory-failures scale-inventory
+        show-inventory-reservations show-inventory-failures scale-inventory \
+		run-load-test measure-consumer-lag \
+		register-schema-v1 register-schema-v2 get-schema-versions \
+		gen-models-v1 gen-models-v2 gen-models \
+		show-metrics
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -29,11 +33,15 @@ up: ## Bring up all infra and services, scale inventory to 2
 	@docker exec -it $(KAFKA) kafka-topics.sh --bootstrap-server $(BROKER) \
 		--create --topic inventory.failed --partitions 4 --replication-factor 1
 
+	@echo "→ Creating metrics.order.rate topic..."
+	@docker exec -it $(KAFKA) kafka-topics.sh --bootstrap-server $(BROKER) \
+	    --create --topic metrics.order.rate --partitions 4 --replication-factor 1 || true
+
 	@echo "→ Building service images..."
-	$(DC) build order-service inventory-service notification-service
+	$(DC) build order-service inventory-service notification-service aggregator
 
 	@echo "→ Launching services..."
-	$(DC) up -d order-service notification-service
+	$(DC) up -d order-service notification-service aggregator
 
 	@echo "→ Scaling inventory-service to 2 instances..."
 	$(DC) up -d --scale inventory-service=2
@@ -72,3 +80,55 @@ measure-consumer-lag: ## While load-testing, watch consumer lag with Kafka’s b
 	--bootstrap-server kafka:9092 \
 	--describe \
 	--group inventory-group
+
+# ---------------------------------------------------------------------------
+# Register Schemas in Schema Registry & Avro Code Generation
+# ---------------------------------------------------------------------------
+
+register-schema-v1: ## Register order_created V1 schema
+	@echo "→ Registering V1 schema"
+	@curl -X POST \
+	  -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+	  --data "$$(jq -Rs '{schema:.}' schemas/order_created_v1.avsc)" \
+	  http://localhost:8081/subjects/orders.created-value/versions
+
+register-schema-v2: ## Register order_created V2 schema
+	@echo "→ Registering V2 schema"
+	@curl -X POST \
+	  -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+	  --data "$$(jq -Rs '{schema:.}' schemas/order_created_v2.avsc)" \
+	  http://localhost:8081/subjects/orders.created-value/versions
+
+get-schema-versions: ## List all versions for orders.created-value
+	@echo "→ Schema versions:"
+	@curl -s http://localhost:8081/subjects/orders.created-value/versions
+
+# Generate Go types for OrderCreated V1
+gen-models-v1: ## Generate Go structs from order_created_v1.avsc
+	@echo "→ Generating Go types for OrderCreated V1"
+	@mkdir -p common/models/v1
+	@gogen-avro \
+	  -package models_v1 \
+	  common/models/v1 \
+	  schemas/order_created_v1.avsc
+
+# Generate Go types for OrderCreated V2
+gen-models-v2: ## Generate Go structs from order_created_v2.avsc
+	@echo "→ Generating Go types for OrderCreated V2"
+	@mkdir -p common/models/v2
+	@gogen-avro \
+	  -package models_v2 \
+	  common/models/v2 \
+	  schemas/order_created_v2.avsc
+
+# Convenience: regenerate both V1 and V2 models
+gen-models: gen-models-v1 gen-models-v2 ## Generate all Avro-based Go types
+
+show-metrics: ## Listen to the metrics.order.rate topic from the beginning
+	@echo "→ Listening on metrics.order.rate (print key)..."
+	@docker exec -it $(KAFKA) \
+	  kafka-console-consumer.sh \
+	    --bootstrap-server $(BROKER) \
+	    --topic metrics.order.rate \
+	    --from-beginning \
+	    --property print.key=true

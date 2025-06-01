@@ -4,6 +4,7 @@ go 1.24.2
 
 require (
 	github.com/IBM/sarama v1.45.1
+	github.com/actgardner/gogen-avro/v7 v7.3.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/spf13/viper v1.20.1
